@@ -5,6 +5,7 @@ int main(int argc, char **argv)
 {
 	uint8_t macaddr[6] = { 0x0, 0x11, 0x22, 0x33, 0x44, 0x55 };
 	struct mlxdevm_port *port;
+	char ifname[64] = {};
 	struct mlxdevm *dl;
 	uint8_t opstate;
 	uint8_t state;
@@ -53,6 +54,13 @@ int main(int argc, char **argv)
 	if (err) {
 		fprintf(stderr, "%s fail to see device attached %d\n", __func__, err);
 	}
+
+	err = mlxdevm_port_netdev_get(dl, port, ifname);
+	if (err)
+		fprintf(stderr, "%s fail to get rep ifname %d\n",
+			__func__, err);
+	else
+		printf("sf rep ifname = %s\n", ifname);
 
 	return 0;
 
