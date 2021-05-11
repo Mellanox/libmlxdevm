@@ -270,6 +270,38 @@ int mlxdevm_port_fn_state_get(struct mlxdevm *dl, struct mlxdevm_port *port,
 	return 0;
 }
 
+static int cmd_netdev_get_cb(const struct nlmsghdr *nlh, void *data)
+{
+	struct genlmsghdr *genl = mnl_nlmsg_get_payload(nlh);
+	struct nlattr *tb[MLXDEVM_ATTR_MAX + 1] = {};
+	const char *ifname = NULL;
+
+	mnl_attr_parse(nlh, sizeof(*genl), attr_cb, tb);
+	if (!tb[MLXDEVM_ATTR_DEV_BUS_NAME] || !tb[MLXDEVM_ATTR_DEV_NAME] ||
+	    !tb[MLXDEVM_ATTR_PORT_INDEX] ||
+	    !tb[MLXDEVM_ATTR_PORT_NETDEV_NAME])
+		return MNL_CB_ERROR;
+
+	ifname = mnl_attr_get_str(tb[MLXDEVM_ATTR_PORT_NETDEV_NAME]);
+	strcpy(data, ifname);
+	return MNL_CB_OK;
+}
+
+int mlxdevm_port_netdev_get(struct mlxdevm *dl, struct mlxdevm_port *port,
+			    char *ifname)
+{
+	struct nlmsghdr *nlh;
+	int err;
+
+	nlh = mnlu_gen_socket_cmd_prepare(&dl->nlg, MLXDEVM_CMD_PORT_GET,
+					  NLM_F_REQUEST | NLM_F_ACK |
+					  NLM_F_DUMP);
+
+	port_handle_set(nlh, dl, port);
+	err = mnlu_gen_socket_sndrcv(&dl->nlg, nlh, cmd_netdev_get_cb, ifname);
+	return err;
+}
+
 static int msleep(long msec)
 {
 	struct timespec ts;
