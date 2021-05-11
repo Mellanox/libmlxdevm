@@ -77,6 +77,9 @@ int mlxdevm_port_fn_state_set(struct mlxdevm *dl, struct mlxdevm_port *port,
 int mlxdevm_port_fn_state_get(struct mlxdevm *dl, struct mlxdevm_port *port,
 			      uint8_t *state, uint8_t *opstate);
 
+int mlxdevm_port_netdev_get(struct mlxdevm *dl, struct mlxdevm_port *port,
+			    char *ifname);
+
 /**
  * mlxdevm_port_fn_opstate_wait_attached - Wait for port function operational
  * state to become active. Caller must first active the port function.
