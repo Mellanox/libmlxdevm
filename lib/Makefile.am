@@ -10,5 +10,5 @@ libmlxdevm_la_CFLAGS = -Wall -I./include/uapi \
 
 libmlxdevm_la_LDFLAGS = -lmnl -DHAVE_LIBMNL
 
-libmlxdevm_la_HEADERS = mlxdevm.h libnetlink.h mnl_utils.h
+libmlxdevm_la_HEADERS = mlxdevm.h libnetlink.h mnl_utils.h utils.h include
 libmlxdevm_la_SOURCES = mlxdevm.c libnetlink.c mnl_utils.c
