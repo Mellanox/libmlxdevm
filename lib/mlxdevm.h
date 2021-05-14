@@ -37,6 +37,13 @@ struct mlxdevm *mlxdevm_open(const char *dl_sock_name,
  */
 void mlxdevm_close(struct mlxdevm *dl);
 
+struct mlxdevm_port_fn_ext_cap {
+	uint32_t max_uc_macs;
+	uint8_t roce;
+	uint8_t max_uc_macs_valid : 1;
+	uint8_t roce_valid : 1;
+};
+
 /**
  * mlxdevm_port - mlxdevm port to be allocated by port allocation API
  * @port_index: port index assignend by the kernel for this port.
@@ -49,6 +56,7 @@ struct mlxdevm_port {
 	uint8_t mac_addr[6];
 	uint8_t state;
 	uint8_t opstate;
+	struct mlxdevm_port_fn_ext_cap ext_cap;
 };
 
 /**
@@ -87,4 +95,18 @@ int mlxdevm_port_netdev_get(struct mlxdevm *dl, struct mlxdevm_port *port,
 int mlxdevm_port_fn_opstate_wait_attached(struct mlxdevm *dl,
 					  struct mlxdevm_port *port);
 
+
+/**
+ * mlxdevm_port_fn_cap_set - Set optional function capabilities if it is
+ * supported. Each capability has a value and a valid bit mask. Caller
+ * must set valid bit of a capability to set/clear a value. Multiple
+ * capabilities can be set/clear with single call. Port capabilities are
+ * updated on successuful execution.
+ * Caller must invoke this API before activating the SF port function to
+ * active state.
+ * Return: 0 on success or error code. When port doesn't have capability
+ * exposed, API return error code -EOPNOTSUPP.
+ */
+int mlxdevm_port_fn_cap_set(struct mlxdevm *dl, struct mlxdevm_port *port,
+			    const struct mlxdevm_port_fn_ext_cap *cap);
 #endif

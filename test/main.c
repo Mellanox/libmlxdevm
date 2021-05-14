@@ -4,6 +4,7 @@
 int main(int argc, char **argv)
 {
 	uint8_t macaddr[6] = { 0x0, 0x11, 0x22, 0x33, 0x44, 0x55 };
+	struct mlxdevm_port_fn_ext_cap cap = {};
 	struct mlxdevm_port *port;
 	char ifname[64] = {};
 	struct mlxdevm *dl;
@@ -32,6 +33,21 @@ int main(int argc, char **argv)
 	}
 	printf("port added port index = %d, netdef ifindex = %d\n",
 		port->port_index, port->ndev_ifindex);
+	printf("roce cap = %d mac_uc_macs = %d\n",
+	       port->ext_cap.roce, port->ext_cap.max_uc_macs);
+	printf("valid roce = %d, uc list = %d\n",
+	       port->ext_cap.roce_valid, port->ext_cap.max_uc_macs_valid);
+
+	if (port->ext_cap.roce_valid || port->ext_cap.max_uc_macs_valid) {
+		cap.roce = false;
+		cap.roce_valid = port->ext_cap.roce_valid;
+
+		cap.max_uc_macs = 1;
+		cap.max_uc_macs_valid = port->ext_cap.max_uc_macs_valid;
+
+		err = mlxdevm_port_fn_cap_set(dl, port, &cap);
+		printf("err = %d\n", err);
+	}
 
 	err = mlxdevm_port_fn_macaddr_set(dl, port, macaddr);
 	if (err) {

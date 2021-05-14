@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0 OR Linux-OpenIB */
 /* Copyright (c) 2021 Mellanox Technologies Ltd */
 
-#ifndef _COMPAT_UAPI_MLXDEVM_MLXDEVM_NETLINK_H
-#define _COMPAT_UAPI_MLXDEVM_MLXDEVM_NETLINK_H
+#ifndef _UAPI_LINUX_MLXDEVM_NETLINK_H
+#define _UAPI_LINUX_MLXDEVM_NETLINK_H
 
 #define MLXDEVM_GENL_NAME "mlxdevm"
 #define MLXDEVM_GENL_VERSION 0x1
@@ -29,7 +29,9 @@ enum mlxdevm_command {
 	 * Do not ever change the values. Only add at the end. Never in the
 	 * middle.
 	 */
-	MLXDEVM_CMD_EXT_START = 8192,
+	MLXDEVM_CMD_EXT_START = 160,
+
+	MLXDEVM_CMD_EXT_CAP_SET,
 
 	__MLXDEVM_CMD_MAX,
 	MLXDEVM_CMD_MAX = __MLXDEVM_CMD_MAX - 1
@@ -71,13 +73,15 @@ enum mlxdevm_attr {
 	MLXDEVM_ATTR_PARAM_VALUE_DATA =		86,	/* dynamic */
 	MLXDEVM_ATTR_PARAM_VALUE_CMODE =	87,	/* u8 */
 
-	/* All upstream devlink commands must be added before with the exact
+	/* All upstream devlink attributes must be added before with the exact
 	 * value as that of upstream without fail.
 	 * All devm specific must start after MLXDEVM_ATTR_EXT_START.
 	 * Do not ever change the values. Only add at the end. Never in the
 	 * middle.
 	 */
 	MLXDEVM_ATTR_EXT_START =		8192,
+
+	MLXDEVM_ATTR_EXT_PORT_FN_CAP,			/* nested */
 
 	__MLXDEVM_ATTR_MAX,
 	MLXDEVM_ATTR_MAX = __MLXDEVM_ATTR_MAX - 1
@@ -88,6 +92,17 @@ enum mlxdevm_port_fn_attr {
 	MLXDEVM_PORT_FUNCTION_ATTR_HW_ADDR =	1,	/* binary */
 	MLXDEVM_PORT_FN_ATTR_STATE =		2,	/* u8 */
 	MLXDEVM_PORT_FN_ATTR_OPSTATE =		3,	/* u8 */
+
+	/* All upstream devlink port function attributes must be added before
+	 * with the exact value as that of upstream without fail.
+	 * All devm specific must start after MLXDEVM_PORT_FN_ATTR_EXT_START.
+	 * Do not ever change the values. Only add at the end. Never in the
+	 * middle.
+	 */
+	MLXDEVM_PORT_FUNCTION_ATTR_EXT_START =	160,
+
+	MLXDEVM_PORT_FN_ATTR_EXT_CAP_ROCE,		/* u8 */
+	MLXDEVM_PORT_FN_ATTR_EXT_CAP_UC_LIST,		/* u32 */
 
 	__MLXDEVM_PORT_FUNCTION_ATTR_MAX,
 	MLXDEVM_PORT_FUNCTION_ATTR_MAX = __MLXDEVM_PORT_FUNCTION_ATTR_MAX - 1
@@ -122,6 +137,11 @@ enum mlxdevm_port_flavour {
 					    * for the PCI SF. It is an internal
 					    * port that faces the PCI SF.
 					    */
+};
+
+enum mlxdevm_port_fn_cap_roce {
+	MLXDEVM_PORT_FN_CAP_ROCE_DISABLE =	0,
+	MLXDEVM_PORT_FN_CAP_ROCE_ENABLE =	1,
 };
 
 enum mlxdevm_param_cmode {
@@ -160,5 +180,4 @@ enum mlxdevm_port_fn_opstate {
 	MLXDEVM_PORT_FN_OPSTATE_DETACHED =	0,
 	MLXDEVM_PORT_FN_OPSTATE_ATTACHED =	1,
 };
-
-#endif /* _COMPAT_UAPI_MLXDEVM_MLXDEVM_NETLINK_H */
+#endif /* _UAPI_LINUX_MLXDEVM_NETLINK_H */

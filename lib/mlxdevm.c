@@ -83,6 +83,8 @@ static const enum mnl_attr_data_type
 mlxdevm_function_policy[MLXDEVM_PORT_FUNCTION_ATTR_MAX + 1] = {
 	[MLXDEVM_PORT_FUNCTION_ATTR_HW_ADDR ] = MNL_TYPE_BINARY,
 	[MLXDEVM_PORT_FN_ATTR_STATE] = MNL_TYPE_U8,
+	[MLXDEVM_PORT_FN_ATTR_EXT_CAP_ROCE] = MNL_TYPE_U8,
+        [MLXDEVM_PORT_FN_ATTR_EXT_CAP_UC_LIST] = MNL_TYPE_U32,
 };
 
 static int function_attr_cb(const struct nlattr *attr, void *data)
@@ -116,6 +118,17 @@ static void cmd_port_fn_get(struct nlattr **tb_port, struct mlxdevm_port *port)
 
 	port->state = mnl_attr_get_u8(tb[MLXDEVM_PORT_FN_ATTR_STATE]);
 	port->opstate = mnl_attr_get_u8(tb[MLXDEVM_PORT_FN_ATTR_OPSTATE]);
+
+	if (tb[MLXDEVM_PORT_FN_ATTR_EXT_CAP_ROCE]) {
+		port->ext_cap.roce =
+			mnl_attr_get_u8(tb[MLXDEVM_PORT_FN_ATTR_EXT_CAP_ROCE]);
+		port->ext_cap.roce_valid = true;
+	}
+	if (tb[MLXDEVM_PORT_FN_ATTR_EXT_CAP_UC_LIST]) {
+		port->ext_cap.max_uc_macs =
+			mnl_attr_get_u32(tb[MLXDEVM_PORT_FN_ATTR_EXT_CAP_UC_LIST]);
+		port->ext_cap.max_uc_macs_valid = true;
+	}
 }
 
 static int cmd_port_show_cb(const struct nlmsghdr *nlh, void *data)
@@ -336,4 +349,44 @@ int mlxdevm_port_fn_opstate_wait_attached(struct mlxdevm *dl,
 		count--;
 	}
 	return EINVAL;
+}
+
+static void port_fn_ext_cap_put(struct nlmsghdr *nlh,
+				const struct mlxdevm_port_fn_ext_cap *cap)
+{
+	struct nlattr *nest;
+
+	nest = mnl_attr_nest_start(nlh, MLXDEVM_ATTR_EXT_PORT_FN_CAP);
+
+	if (cap->roce_valid)
+		mnl_attr_put_u8(nlh, MLXDEVM_PORT_FN_ATTR_EXT_CAP_ROCE, cap->roce);
+	if (cap->max_uc_macs_valid)
+		mnl_attr_put_u32(nlh, MLXDEVM_PORT_FN_ATTR_EXT_CAP_UC_LIST,
+				 cap->max_uc_macs);
+
+	mnl_attr_nest_end(nlh, nest);
+}
+
+int mlxdevm_port_fn_cap_set(struct mlxdevm *dl, struct mlxdevm_port *port,
+			    const struct mlxdevm_port_fn_ext_cap *cap)
+{
+	struct nlmsghdr *nlh;
+	int err;
+
+	if (!port->ext_cap.roce_valid && !port->ext_cap.max_uc_macs_valid)
+		return -EOPNOTSUPP;
+
+	nlh = mnlu_gen_socket_cmd_prepare(&dl->nlg, MLXDEVM_CMD_EXT_CAP_SET,
+					  NLM_F_REQUEST | NLM_F_ACK);
+	port_handle_set(nlh, dl, port);
+	port_fn_ext_cap_put(nlh, cap);
+	err = mnlu_gen_socket_sndrcv(&dl->nlg, nlh, NULL, NULL);
+	if (err)
+		return err;
+
+	if (cap->roce_valid)
+		port->ext_cap.roce = cap->roce;
+	if (cap->max_uc_macs_valid)
+		port->ext_cap.max_uc_macs = cap->max_uc_macs;
+	return 0;
 }
