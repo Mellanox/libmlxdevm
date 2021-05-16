@@ -109,4 +109,32 @@ int mlxdevm_port_fn_opstate_wait_attached(struct mlxdevm *dl,
  */
 int mlxdevm_port_fn_cap_set(struct mlxdevm *dl, struct mlxdevm_port *port,
 			    const struct mlxdevm_port_fn_ext_cap *cap);
+
+struct mlxdevm_param {
+	uint8_t cmode;
+	uint8_t nla_type;
+	union {
+		uint8_t val_u8;
+		uint16_t val_u16;
+		uint32_t val_u32;
+		bool val_bool;
+	} u;
+};
+
+/**
+ * mlxdevm_dev_driver_param_get - Get a parameter fields for a specific
+ * parameter of the device.
+ * Return: 0 on success along with param fields or error error code.
+ */
+int mlxdevm_dev_driver_param_get(struct mlxdevm *dl, const char *param_name,
+				 struct mlxdevm_param *param);
+
+/**
+ * mlxdevm_dev_driver_param_set - Set a specified parameter by its name for
+ * a specified device.
+ * Return: 0 on success or error code.
+ */
+int mlxdevm_dev_driver_param_set(struct mlxdevm *dl, const char *param_name,
+				 const struct mlxdevm_param *param);
+
 #endif

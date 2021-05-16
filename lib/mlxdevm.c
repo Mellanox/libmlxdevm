@@ -183,11 +183,16 @@ sock_err:
 	return NULL;
 }
 
-static void port_handle_set(struct nlmsghdr *nlh, const struct mlxdevm *dl,
-			    const struct mlxdevm_port *port)
+static void dev_handle_set(struct nlmsghdr *nlh, const struct mlxdevm *dl)
 {
 	mnl_attr_put_strz(nlh, MLXDEVM_ATTR_DEV_BUS_NAME, dl->bus);
 	mnl_attr_put_strz(nlh, MLXDEVM_ATTR_DEV_NAME, dl->dev);
+}
+
+static void port_handle_set(struct nlmsghdr *nlh, const struct mlxdevm *dl,
+			    const struct mlxdevm_port *port)
+{
+	dev_handle_set(nlh, dl);
 	mnl_attr_put_u32(nlh, MLXDEVM_ATTR_PORT_INDEX, port->port_index);
 }
 
@@ -389,4 +394,133 @@ int mlxdevm_port_fn_cap_set(struct mlxdevm *dl, struct mlxdevm_port *port,
 	if (cap->max_uc_macs_valid)
 		port->ext_cap.max_uc_macs = cap->max_uc_macs;
 	return 0;
+}
+
+static void pr_out_param_value(struct mlxdevm_param *param, const char *nla_name,
+			       int nla_type, struct nlattr *nl)
+{
+	struct nlattr *nla_value[MLXDEVM_ATTR_MAX + 1] = {};
+	struct nlattr *val_attr;
+	int err;
+
+	err = mnl_attr_parse_nested(nl, attr_cb, nla_value);
+	if (err != MNL_CB_OK)
+		return;
+
+	if (!nla_value[MLXDEVM_ATTR_PARAM_VALUE_CMODE] ||
+	    (nla_type != MNL_TYPE_FLAG &&
+	     !nla_value[MLXDEVM_ATTR_PARAM_VALUE_DATA]))
+		return;
+
+	param->cmode =
+		mnl_attr_get_u8(nla_value[MLXDEVM_ATTR_PARAM_VALUE_CMODE]);
+	val_attr = nla_value[MLXDEVM_ATTR_PARAM_VALUE_DATA];
+
+	switch (nla_type) {
+	case MNL_TYPE_U8:
+		param->u.val_u8 = mnl_attr_get_u8(val_attr);
+		break;
+	case MNL_TYPE_U16:
+		param->u.val_u16 = mnl_attr_get_u16(val_attr);
+		break;
+	case MNL_TYPE_U32:
+		param->u.val_u32 = mnl_attr_get_u32(val_attr);
+		break;
+	case MNL_TYPE_FLAG:
+		param->u.val_bool = val_attr ? true : false;
+		break;
+	default:
+		break;
+	}
+}
+
+static void pr_out_param(struct mlxdevm_param *param, struct nlattr **tb)
+{
+	struct nlattr *nla_param[MLXDEVM_ATTR_MAX + 1] = {};
+	struct nlattr *param_value_attr;
+	const char *nla_name;
+	int nla_type;
+	int err;
+
+	err = mnl_attr_parse_nested(tb[MLXDEVM_ATTR_PARAM], attr_cb, nla_param);
+	if (err != MNL_CB_OK)
+		return;
+	if (!nla_param[MLXDEVM_ATTR_PARAM_NAME] ||
+	    !nla_param[MLXDEVM_ATTR_PARAM_TYPE] ||
+	    !nla_param[MLXDEVM_ATTR_PARAM_VALUES_LIST])
+		return;
+
+	if (nla_param[MLXDEVM_ATTR_PARAM_GENERIC])
+		return;
+
+	nla_type = mnl_attr_get_u8(nla_param[MLXDEVM_ATTR_PARAM_TYPE]);
+	param->nla_type = nla_type;
+
+	nla_name = mnl_attr_get_str(nla_param[MLXDEVM_ATTR_PARAM_NAME]);
+
+	mnl_attr_for_each_nested(param_value_attr,
+				 nla_param[MLXDEVM_ATTR_PARAM_VALUES_LIST]) {
+		pr_out_param_value(param, nla_name, nla_type, param_value_attr);
+	}
+}
+
+static int cmd_dev_param_show_cb(const struct nlmsghdr *nlh, void *data)
+{
+	struct genlmsghdr *genl = mnl_nlmsg_get_payload(nlh);
+	struct nlattr *tb[MLXDEVM_ATTR_MAX + 1] = {};
+
+	mnl_attr_parse(nlh, sizeof(*genl), attr_cb, tb);
+	if (!tb[MLXDEVM_ATTR_DEV_BUS_NAME] || !tb[MLXDEVM_ATTR_DEV_NAME] ||
+	    !tb[MLXDEVM_ATTR_PARAM])
+		return MNL_CB_ERROR;
+	pr_out_param(data, tb);
+	return MNL_CB_OK;
+}
+
+int mlxdevm_dev_driver_param_get(struct mlxdevm *dl, const char *param_name,
+				 struct mlxdevm_param *param)
+{
+	struct nlmsghdr *nlh;
+
+	nlh = mnlu_gen_socket_cmd_prepare(&dl->nlg, MLXDEVM_CMD_PARAM_GET,
+					  NLM_F_REQUEST | NLM_F_ACK);
+
+	dev_handle_set(nlh, dl);
+        mnl_attr_put_strz(nlh, MLXDEVM_ATTR_PARAM_NAME, param_name);
+	return mnlu_gen_socket_sndrcv(&dl->nlg, nlh, cmd_dev_param_show_cb, param);
+}
+
+int mlxdevm_dev_driver_param_set(struct mlxdevm *dl, const char *param_name,
+				 const struct mlxdevm_param *param)
+{
+	struct nlmsghdr *nlh;
+
+	nlh = mnlu_gen_socket_cmd_prepare(&dl->nlg, MLXDEVM_CMD_PARAM_SET,
+					  NLM_F_REQUEST | NLM_F_ACK);
+
+	dev_handle_set(nlh, dl);
+	mnl_attr_put_u8(nlh, MLXDEVM_ATTR_PARAM_VALUE_CMODE, param->cmode);
+        mnl_attr_put_strz(nlh, MLXDEVM_ATTR_PARAM_NAME, param_name);
+	mnl_attr_put_u8(nlh, MLXDEVM_ATTR_PARAM_TYPE, param->nla_type);
+
+	switch (param->nla_type) {
+	case MNL_TYPE_U8:
+		mnl_attr_put_u8(nlh, MLXDEVM_ATTR_PARAM_VALUE_DATA,
+				param->u.val_u8);
+		break;
+	case MNL_TYPE_U16:
+		mnl_attr_put_u16(nlh, MLXDEVM_ATTR_PARAM_VALUE_DATA,
+				 param->u.val_u16);
+		break;
+	case MNL_TYPE_U32:
+		mnl_attr_put_u32(nlh, MLXDEVM_ATTR_PARAM_VALUE_DATA,
+				 param->u.val_u32);
+		break;
+	case MNL_TYPE_FLAG:
+		if (param->u.val_bool)
+			mnl_attr_put(nlh, MLXDEVM_ATTR_PARAM_VALUE_DATA, 0, NULL);
+		break;
+	}
+
+	return mnlu_gen_socket_sndrcv(&dl->nlg, nlh, NULL, NULL);
 }

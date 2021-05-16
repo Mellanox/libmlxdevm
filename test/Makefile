@@ -7,6 +7,8 @@ EXT_LIBS+=-lmnl
 all: ../lib/mlxdevmlib.a
 	gcc -o mlxdevm_test $(CFLAGS) $(EXT_LIBS_FLAGS) $(EXT_LIBS) \
 		main.c ../lib/mlxdevmlib.a
+	gcc -o mlxdevm_param_test $(CFLAGS) $(EXT_LIBS_FLAGS) $(EXT_LIBS) \
+		param.c ../lib/mlxdevmlib.a
 
 clean:
 	rm -rf mlxdevm_test *.o
