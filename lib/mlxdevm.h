@@ -90,11 +90,17 @@ int mlxdevm_port_netdev_get(struct mlxdevm *dl, struct mlxdevm_port *port,
 
 /**
  * mlxdevm_port_fn_opstate_wait_attached - Wait for port function operational
- * state to become active. Caller must first active the port function.
+ * state to become attached. Caller must first active the port function.
  */
 int mlxdevm_port_fn_opstate_wait_attached(struct mlxdevm *dl,
 					  struct mlxdevm_port *port);
 
+/**
+ * mlxdevm_port_fn_opstate_wait_detached - Wait for port function operational
+ * state to become detached. Caller must first active the port function.
+ */
+int mlxdevm_port_fn_opstate_wait_detached(struct mlxdevm *dl,
+					  struct mlxdevm_port *port);
 
 /**
  * mlxdevm_port_fn_cap_set - Set optional function capabilities if it is

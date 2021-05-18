@@ -335,8 +335,10 @@ static int msleep(long msec)
 	return res;
 }
 
-int mlxdevm_port_fn_opstate_wait_attached(struct mlxdevm *dl,
-					  struct mlxdevm_port *port)
+static int
+mlxdevm_port_fn_opstate_wait(struct mlxdevm *dl,
+			     struct mlxdevm_port *port,
+			     enum mlxdevm_port_fn_opstate desired_opstate)
 {
 	int count = 4000; /* 400msec timeout */
 	uint8_t opstate;
@@ -347,13 +349,27 @@ int mlxdevm_port_fn_opstate_wait_attached(struct mlxdevm *dl,
 		err = mlxdevm_port_fn_state_get(dl, port, &state, &opstate);
 		if (err)
 			return err;
-		if (opstate == MLXDEVM_PORT_FN_OPSTATE_ATTACHED)
+		if (opstate == desired_opstate)
 			return 0;
 
 		msleep(1);
 		count--;
 	}
 	return EINVAL;
+}
+
+int mlxdevm_port_fn_opstate_wait_attached(struct mlxdevm *dl,
+					  struct mlxdevm_port *port)
+{
+	return mlxdevm_port_fn_opstate_wait(dl, port,
+					    MLXDEVM_PORT_FN_OPSTATE_ATTACHED);
+}
+
+int mlxdevm_port_fn_opstate_wait_detached(struct mlxdevm *dl,
+					  struct mlxdevm_port *port)
+{
+	return mlxdevm_port_fn_opstate_wait(dl, port,
+					    MLXDEVM_PORT_FN_OPSTATE_DETACHED);
 }
 
 static void port_fn_ext_cap_put(struct nlmsghdr *nlh,
