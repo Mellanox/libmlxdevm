@@ -312,8 +312,7 @@ int mlxdevm_port_netdev_get(struct mlxdevm *dl, struct mlxdevm_port *port,
 	int err;
 
 	nlh = mnlu_gen_socket_cmd_prepare(&dl->nlg, MLXDEVM_CMD_PORT_GET,
-					  NLM_F_REQUEST | NLM_F_ACK |
-					  NLM_F_DUMP);
+					  NLM_F_REQUEST | NLM_F_ACK);
 
 	port_handle_set(nlh, dl, port);
 	err = mnlu_gen_socket_sndrcv(&dl->nlg, nlh, cmd_netdev_get_cb, ifname);
