@@ -6,6 +6,7 @@
 #include <time.h>
 #include <libmnl/libmnl.h>
 #include <linux/genetlink.h>
+#include <sys/queue.h>
 
 #include "libnetlink.h"
 #include "mnl_utils.h"
@@ -60,6 +61,19 @@ struct mlxdevm_port {
 };
 
 /**
+ * mlxdevm_port_list - filled by mlxdevm_sf_port_list_dump
+ */
+struct mlxdevm_port_list {
+	struct mlxdevm_port port;
+	TAILQ_ENTRY(mlxdevm_port_list) entry;
+};
+
+/**
+ * mlxdevm_port_list - head of the mlxdevm_port_list
+ */
+TAILQ_HEAD(mlxdevm_port_list_head, mlxdevm_port_list);
+
+/**
  * mlxdevm_sf_port_add - Add mlxdevm SF port
  *
  * Add mlxdevm SF port for specified PCI PF and SF number.
@@ -67,6 +81,19 @@ struct mlxdevm_port {
  */
 struct mlxdevm_port *
 mlxdevm_sf_port_add(struct mlxdevm *dl, uint32_t pfnum, uint32_t sfnum);
+
+/**
+ * mlxdevm_sf_port_list_dump - Dump a port list into the list defined by head
+ */
+int mlxdevm_sf_port_list_dump(struct mlxdevm *dl,
+			      struct mlxdevm_port_list_head *head);
+
+/**
+ * mlxdevm_sf_port_del_list_item - Delete an item in the port list
+ */
+void mlxdevm_sf_port_list_item_del(struct mlxdevm *dl,
+				   struct mlxdevm_port_list_head *head,
+				   struct mlxdevm_port_list *port);
 
 /**
  * mlxdevm_sf_port_del - Deleted previously created SF port

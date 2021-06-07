@@ -183,6 +183,43 @@ sock_err:
 	return NULL;
 }
 
+static int cmd_port_dump_cb_to_list(const struct nlmsghdr *nlh, void *data)
+{
+	struct genlmsghdr *genl = mnl_nlmsg_get_payload(nlh);
+	struct nlattr *tb[MLXDEVM_ATTR_MAX + 1] = {};
+	struct mlxdevm_port_list_head *head = data;
+	struct mlxdevm_port_list *cur;
+	struct mlxdevm_port *port;
+	uint16_t flavour;
+
+	mnl_attr_parse(nlh, sizeof(*genl), attr_cb, tb);
+	if (!tb[MLXDEVM_ATTR_DEV_BUS_NAME] || !tb[MLXDEVM_ATTR_DEV_NAME] ||
+	    !tb[MLXDEVM_ATTR_PORT_INDEX] || !tb[MLXDEVM_ATTR_PORT_PCI_PF_NUMBER] ||
+	    !tb[MLXDEVM_ATTR_PORT_PCI_SF_NUMBER] ||
+	    !tb[MLXDEVM_ATTR_PORT_FLAVOUR])
+		return 0;
+
+	flavour = mnl_attr_get_u16(tb[MLXDEVM_ATTR_PORT_FLAVOUR]);
+	if (flavour != MLXDEVM_PORT_FLAVOUR_PCI_SF)
+		return MNL_CB_OK;
+
+	cur = calloc(1, sizeof(struct mlxdevm_port_list));
+	if (!cur)
+		return -ENOMEM;
+
+	port = &cur->port;
+	port->port_index = mnl_attr_get_u32(tb[MLXDEVM_ATTR_PORT_INDEX]);
+	port->ndev_ifindex = mnl_attr_get_u32(tb[MLXDEVM_ATTR_PORT_NETDEV_IFINDEX]);
+	port->pfnum = mnl_attr_get_u16(tb[MLXDEVM_ATTR_PORT_PCI_PF_NUMBER]);
+	port->sfnum = mnl_attr_get_u32(tb[MLXDEVM_ATTR_PORT_PCI_SF_NUMBER]);
+
+	cmd_port_fn_get(tb, port);
+
+	TAILQ_INSERT_TAIL(head, cur, entry);
+
+	return MNL_CB_OK;
+}
+
 static void dev_handle_set(struct nlmsghdr *nlh, const struct mlxdevm *dl)
 {
 	mnl_attr_put_strz(nlh, MLXDEVM_ATTR_DEV_BUS_NAME, dl->bus);
@@ -195,18 +232,51 @@ static void port_handle_set(struct nlmsghdr *nlh, const struct mlxdevm *dl,
 	dev_handle_set(nlh, dl);
 	mnl_attr_put_u32(nlh, MLXDEVM_ATTR_PORT_INDEX, port->port_index);
 }
-
-void mlxdevm_sf_port_del(struct mlxdevm *dl, struct mlxdevm_port *port)
+			    
+int mlxdevm_sf_port_list_dump(struct mlxdevm *dl,
+			      struct mlxdevm_port_list_head *head)
 {
 	struct nlmsghdr *nlh;
-	int err;
+
+	if (!TAILQ_EMPTY(head))
+		return -EINVAL;
+
+	nlh = mnlu_gen_socket_cmd_prepare(&dl->nlg, MLXDEVM_CMD_PORT_GET,
+					  NLM_F_REQUEST | NLM_F_ACK | NLM_F_DUMP);
+
+	dev_handle_set(nlh, dl);
+
+	return mnlu_gen_socket_sndrcv(&dl->nlg, nlh, cmd_port_dump_cb_to_list, head);
+}
+
+static int mlxdevm_port_del_cmd(struct mlxdevm *dl, struct mlxdevm_port *port)
+{
+	struct nlmsghdr *nlh = NULL;
 
 	nlh = mnlu_gen_socket_cmd_prepare(&dl->nlg, MLXDEVM_CMD_PORT_DEL,
 					  NLM_F_REQUEST | NLM_F_ACK);
 
 	port_handle_set(nlh, dl, port);
 
-	err = mnlu_gen_socket_sndrcv(&dl->nlg, nlh, NULL, NULL);
+	return mnlu_gen_socket_sndrcv(&dl->nlg, nlh, NULL, NULL);
+}
+
+void mlxdevm_sf_port_list_item_del(struct mlxdevm *dl,
+				   struct mlxdevm_port_list_head *head,
+				   struct mlxdevm_port_list *port)
+{
+	mlxdevm_port_del_cmd(dl, &port->port);
+
+	TAILQ_REMOVE(head, port, entry);
+
+	free(port);
+}
+
+void mlxdevm_sf_port_del(struct mlxdevm *dl, struct mlxdevm_port *port)
+{
+	int err;
+
+	err = mlxdevm_port_del_cmd(dl, port);
 	if (err)
 		return;
 
