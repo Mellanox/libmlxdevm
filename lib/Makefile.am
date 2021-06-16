@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
 
-EXTRA_DIST = libmlxdevm.spec autogen.sh
+EXTRA_DIST = libmlxdevm.spec autogen.sh debian
 
 lib_LTLIBRARIES = libmlxdevm.la
 

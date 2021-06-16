@@ -1,0 +1,4 @@
+libmlxdevm (@PACKAGE_VERSION@-@PACKAGE_REVISION@) unstable; urgency=medium
+  * Create DEB package
+
+ -- Nvidia. <@PACKAGE_BUGREPORT@>  @BUILD_DATE_CHANGELOG@

@@ -1,0 +1,12 @@
+Source: libmlxdevm
+Section: unknown
+Priority: optional
+Maintainer: Parav Pandit <parav@nvidia.com>
+Build-Depends: debhelper (>= 10), autotools-dev
+Standards-Version: 4.1.2
+Homepage: https://www.nvidia.com
+
+Package: libmlxdevm
+Architecture: amd64 arm64
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Mellanox device management C library

@@ -57,6 +57,7 @@ fi
 AC_PREFIX_DEFAULT(/usr/local)
 
 AC_CONFIG_FILES([Makefile
+		 debian/changelog
 		 libmlxdevm.spec])
 
 AC_OUTPUT
