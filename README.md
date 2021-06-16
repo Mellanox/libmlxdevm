@@ -5,7 +5,7 @@ Mellanox device management C library
 ### compile library
 
 $ cd lib
-$ make all
+$ ./autogen.sh && ./configure --prefix=/usr && make -j 8 && make install
 
 ### compile test program
 
