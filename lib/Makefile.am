@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
 
-EXTRA_DIST = libmlxdevm.spec autogen.sh
+EXTRA_DIST = libmlxdevm.spec autogen.sh debian
 
 noinst_HEADERS = ./include/uapi/linux/genetlink.h \
 		 ./include/uapi/linux/netlink.h \

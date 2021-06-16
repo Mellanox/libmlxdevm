@@ -37,3 +37,4 @@ core.[0-9]*
 lib/libmlxdevm.spec
 lib/libmlxdevm-*.tar.gz
 lib/libmlxdevm-*/**
+lib/debian/changelog
